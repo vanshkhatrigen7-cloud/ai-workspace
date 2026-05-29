@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Workspace Assistant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #1a1a1a;
+      border-bottom: 1px solid #2a2a2a;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 { font-size: 18px; font-weight: 600; color: #fff; }
+    header span { font-size: 12px; color: #666; }
+
+    .container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* LEFT SIDEBAR */
+    .sidebar {
+      width: 280px;
+      background: #141414;
+      border-right: 1px solid #2a2a2a;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      gap: 16px;
+    }
+
+    .sidebar h2 { font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+
+    .upload-area {
+      border: 2px dashed #333;
+      border-radius: 10px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .upload-area:hover { border-color: #6c63ff; }
+    .upload-area p { font-size: 13px; color: #666; margin-top: 8px; }
+    .upload-area .icon { font-size: 28px; }
+
+    #file-input { display: none; }
+
+    .upload-btn {
+      background: #6c63ff;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      width: 100%;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .upload-btn:hover { background: #5a52d5; }
+    .upload-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+    .pdf-list { display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto; }
+
+    .pdf-item {
+      background: #1e1e1e;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pdf-item:hover { border-color: #6c63ff; }
+    .pdf-item.active { border-color: #6c63ff; background: #1e1a3a; }
+    .pdf-item .pdf-icon { font-size: 16px; }
+    .pdf-item .pdf-name { font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pdf-item .pdf-chunks { font-size: 11px; color: #666; }
+
+    .status-box {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #888;
+      min-height: 36px;
+    }
+
+    /* MAIN CHAT */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #2a2a2a;
+      font-size: 14px;
+      color: #888;
+      background: #141414;
+    }
+
+    .chat-header span { color: #6c63ff; font-weight: 500; }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      max-width: 80%;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .message.user { align-self: flex-end; flex-direction: row-reverse; }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .message.user .avatar { background: #6c63ff; }
+    .message.bot .avatar { background: #2a2a2a; }
+
+    .bubble {
+      background: #1e1e1e;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #e0e0e0;
+    }
+
+    .message.user .bubble { background: #2a1f5e; border-color: #6c63ff44; }
+
+    .bubble.thinking { color: #666; font-style: italic; }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #444;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .empty-state .big-icon { font-size: 48px; }
+    .empty-state p { font-size: 14px; }
+
+    /* INPUT BAR */
+    .input-bar {
+      padding: 16px 24px;
+      border-top: 1px solid #2a2a2a;
+      display: flex;
+      gap: 12px;
+      background: #141414;
+    }
+
+    .input-bar input {
+      flex: 1;
+      background: #1e1e1e;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #e0e0e0;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-bar input:focus { border-color: #6c63ff; }
+    .input-bar input::placeholder { color: #555; }
+
+    .send-btn {
+      background: #6c63ff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 20px;
+      color: white;
+      cursor: pointer;
+      font-size: 18px;
+      transition: background 0.2s;
+    }
+
+    .send-btn:hover { background: #5a52d5; }
+    .send-btn:disabled { background: #333; cursor: not-allowed; }
+
+    .clear-btn {
+      background: #1e1e1e;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #888;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .clear-btn:hover { border-color: #ff6b6b; color: #ff6b6b; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>📄</div>
+  <div>
+    <h1>AI Workspace Assistant</h1>
+    <span>PDF Chat with RAG · Phase 3</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <h2>📂 Your PDFs</h2>
+
+    <div class="upload-area" onclick="document.getElementById('file-input').click()">
+      <div class="icon">⬆️</div>
+      <p>Click to upload a PDF</p>
+    </div>
+    <input type="file" id="file-input" accept=".pdf" onchange="uploadPDF(this)" />
+
+    <button class="upload-btn" id="upload-btn" disabled>Uploading...</button>
+
+    <div class="pdf-list" id="pdf-list">
+      <p style="font-size:12px; color:#555; text-align:center; margin-top:8px;">No PDFs yet</p>
+    </div>
+
+    <div class="status-box" id="status">Ready — upload a PDF to start</div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-area">
+    <div class="chat-header">
+      Chatting with: <span id="active-pdf-name">no PDF selected</span>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="empty-state" id="empty-state">
+        <div class="big-icon">🤖</div>
+        <p>Upload a PDF and start asking questions</p>
+      </div>
+    </div>
+
+    <div class="input-bar">
+      <button class="clear-btn" onclick="clearChat()">🗑 Clear</button>
+<button class="clear-btn" id="ask-all-btn" onclick="askAllPDFs()" style="display:none; border-color:#f59e0b; color:#f59e0b;">⚡ Ask All PDFs</button>
+      <input
+        type="text"
+        id="question-input"
+        placeholder="Ask something about your PDF..."
+        onkeydown="if(event.key==='Enter') askQuestion()"
+        disabled
+      />
+      <button class="send-btn" id="send-btn" onclick="askQuestion()" disabled>➤</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API = "http://127.0.0.1:8000";
+  let activePDF = null;       // { collection_id, name, chunks }
+  let chatHistory = [];       // { role, content }[]
+  let pdfs = [];              // all uploaded PDFs
+
+  // ── UPLOAD ──────────────────────────────────────────────
+  async function uploadPDF(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    setStatus(`Uploading "${file.name}"...`);
+    const btn = document.getElementById("upload-btn");
+    btn.disabled = true;
+    btn.textContent = "Uploading...";
+
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const res = await fetch(`${API}/upload-pdf`, { method: "POST", body: form });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.detail || "Upload failed");
+
+      const pdf = { collection_id: data.collection_id, name: file.name, chunks: data.chunks_created };
+      pdfs.push(pdf);
+      renderPDFList();
+      selectPDF(pdf);
+      setStatus(`✅ "${file.name}" ready — ${data.chunks_created} chunks`);
+    } catch (err) {
+      setStatus(`❌ Error: ${err.message}`);
+    }
+
+    btn.textContent = "Uploading...";
+    btn.disabled = true;
+    input.value = "";
+  }
+
+  // ── PDF LIST ─────────────────────────────────────────────
+  function renderPDFList() {
+    const list = document.getElementById("pdf-list");
+    if (pdfs.length === 0) {
+      list.innerHTML = `<p style="font-size:12px; color:#555; text-align:center; margin-top:8px;">No PDFs yet</p>`;
+      return;
+    }
+    list.innerHTML = pdfs.map((p, i) => `
+      <div class="pdf-item ${activePDF?.collection_id === p.collection_id ? 'active' : ''}" onclick="selectPDF(pdfs[${i}])">
+        <span class="pdf-icon">📄</span>
+        <span class="pdf-name" title="${p.name}">${p.name}</span>
+        <span class="pdf-chunks">${p.chunks}c</span>
+      </div>
+    `).join("");
+    document.getElementById("ask-all-btn").style.display = pdfs.length > 1 ? "block" : "none";
+  }
+
+  function selectPDF(pdf) {
+    activePDF = pdf;
+    chatHistory = [];
+    document.getElementById("active-pdf-name").textContent = pdf.name;
+    document.getElementById("question-input").disabled = false;
+    document.getElementById("send-btn").disabled = false;
+    document.getElementById("messages").innerHTML = "";
+    document.getElementById("empty-state")?.remove();
+    addMessage("bot", `📄 Loaded **${pdf.name}** (${pdf.chunks} chunks). Ask me anything about it!`);
+    renderPDFList();
+  }
+
+  // ── CHAT ─────────────────────────────────────────────────
+  async function askQuestion() {
+    const input = document.getElementById("question-input");
+    const question = input.value.trim();
+    if (!question || !activePDF) return;
+
+    input.value = "";
+    document.getElementById("send-btn").disabled = true;
+
+    addMessage("user", question);
+    chatHistory.push({ role: "user", content: question });
+
+    const thinkingId = addMessage("bot", "Thinking...", true);
+
+    try {
+      const res = await fetch(`${API}/ask-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          collection_id: activePDF.collection_id,
+          question: question,
+          history: chatHistory
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Error");
+
+      removeMessage(thinkingId);
+      addMessage("bot", data.answer);
+      chatHistory.push({ role: "assistant", content: data.answer });
+
+    } catch (err) {
+      removeMessage(thinkingId);
+      addMessage("bot", `❌ Error: ${err.message}`);
+    }
+
+    document.getElementById("send-btn").disabled = false;
+    input.focus();
+  }
+
+  function clearChat() {
+    chatHistory = [];
+    document.getElementById("messages").innerHTML = "";
+    if (activePDF) addMessage("bot", `Chat cleared. Still on **${activePDF.name}** — ask away!`);
+  }
+
+  // ── MESSAGE HELPERS ───────────────────────────────────────
+  let msgId = 0;
+  function addMessage(role, text, isThinking = false) {
+    const id = "msg-" + (++msgId);
+    const el = document.createElement("div");
+    el.className = `message ${role}`;
+    el.id = id;
+    el.innerHTML = `
+      <div class="avatar">${role === "user" ? "🧑" : "🤖"}</div>
+      <div class="bubble ${isThinking ? 'thinking' : ''}">${text}</div>
+    `;
+    const container = document.getElementById("messages");
+    container.appendChild(el);
+    container.scrollTop = container.scrollHeight;
+    return id;
+  }
+
+  function removeMessage(id) {
+    document.getElementById(id)?.remove();
+  }
+
+  function setStatus(msg) {
+    document.getElementById("status").textContent = msg;
+  }
+  async function askAllPDFs() {
+      const input = document.getElementById("question-input");
+      const question = input.value.trim();
+      if (!question || pdfs.length === 0) return;
+
+      input.value = "";
+      document.getElementById("send-btn").disabled = true;
+
+      addMessage("user", `[All PDFs] ${question}`);
+
+      const thinkingId = addMessage("bot", "Searching across all PDFs...", true);
+
+      try {
+        const res = await fetch(`${API}/ask-all-pdfs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            collection_ids: pdfs.map(p => p.collection_id),
+            question: question,
+            history: chatHistory
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail);
+
+        removeMessage(thinkingId);
+        addMessage("bot", data.answer);
+        chatHistory.push({ role: "user", content: question });
+        chatHistory.push({ role: "assistant", content: data.answer });
+
+      } catch (err) {
+        removeMessage(thinkingId);
+        addMessage("bot", `❌ Error: ${err.message}`);
+      }
+
+      document.getElementById("send-btn").disabled = false;
+    }
+</script>
+
+</body>
+</html>

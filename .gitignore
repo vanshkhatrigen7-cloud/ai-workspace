@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.pyc
+
+# Virtual Environment
+venv/
+env/
+.venv/
+ENV/
+
+# Environment Variables (NEVER push this)
+.env
+
+# ChromaDB data
+chroma_db/
+
+# Uploaded PDFs
+backend/uploads/
+
+# Hugging Face model cache
+.cache/
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Python egg
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
